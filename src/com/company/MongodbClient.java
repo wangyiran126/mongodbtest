@@ -36,21 +36,26 @@ public class MongodbClient {
 //       mongoClient.findDocumentJson();
        Long totalCount =  mongoClient.findCount();
         mongoClient.computeDeptCountPercent(totalCount);
+        //获取每个级别的人数
 //        mongoClient.mapreduce();
     }
 
     private void computeDeptCountPercent(Long totalCount) {
         //不同部门人数
         AggregateIterable<Document> iterable = resultCollection.aggregate(Arrays.asList(
-                new Document("$group", new Document("_id", "$dept.id").append("userIdSet",new Document("$addToSet","$userId"))
-                )
+                new Document("$group", new Document("_id", "$dept.id")
+                        .append("deptName",new Document("$addToSet","$dept.name"))
+                        .append("userIdSet",new Document("$addToSet","$userId")
+                ))
         ));
 
         for (Document document:iterable){
             Double deptId = document.getDouble("_id");
             List<Long> userIds = document.get("userIdSet",List.class);
+            List<String> deptName = document.get("deptName",List.class);
+
             Double percent = Double.valueOf(userIds.size())/totalCount;
-            System.out.println("deptId:"+deptId+",percent:"+percent);
+            System.out.println("deptId:"+deptId+",percent:"+percent+",deptName:"+deptName.get(0));
         }
 
     }
