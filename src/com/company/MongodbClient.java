@@ -10,18 +10,18 @@ import java.util.List;
 public class MongodbClient {
     public MongodbClient() {
         this.mongoClient = new MongoClient("localhost", 27017);
-        this.db = mongoClient.getDatabase("local");;
+        this.db = mongoClient.getDatabase("testResult");;
         MongoIterable<String> names = db.listCollectionNames();
         boolean existCollect =false;
         for (String name :names){
-            if (name.equals("testresult")){
+            if (name.equals("testResult")){
                 existCollect = true;
             }
         }
         if (existCollect == false){
-            db.createCollection("testresult");
+            db.createCollection("testResult");
         }
-        resultCollection = db.getCollection("testresult");
+        resultCollection = db.getCollection("testResult");
     }
 
     MongoClient mongoClient;
@@ -35,9 +35,33 @@ public class MongodbClient {
         mongoClient.insertData();
 //       mongoClient.findDocumentJson();
        Long totalCount =  mongoClient.findCount();
-        mongoClient.computeDeptCountPercent(totalCount);
+//        mongoClient.computeDeptCountPercent(totalCount);
+        mongoClient.computeDeptCountPercent2(totalCount);
+
         //获取每个级别的人数
 //        mongoClient.mapreduce();
+    }
+
+    private void computeDeptCountPercent2(Long totalCount) {
+        //不同部门人数
+        AggregateIterable<Document> iterable = resultCollection.aggregate(Arrays.asList(
+                new Document("$group", new Document
+                                            ("_id",new Document("deptId", "$dept.id")
+                                        .append("deptName", "$dept.name")
+                                        ).append("userIds",new Document("$addToSet","$userId")
+                                            ))
+                ,new Document("$project",new Document("deptId","$_id.deptId")
+                .append("userSize",new Document("$size","$userIds"))
+                .append("deptName", "$_id.deptName"))
+                )
+        );
+
+        for (Document document:iterable){
+            Integer deptId = document.getInteger("deptId");
+            Integer userSize = document.getInteger("userSize");
+            String deptName = document.getString("deptName");
+            System.out.println("deptId:"+deptId+",userSize:"+userSize+",deptName:"+deptName);
+        }
     }
 
     private void computeDeptCountPercent(Long totalCount) {
@@ -47,7 +71,7 @@ public class MongodbClient {
                         .append("deptName",new Document("$addToSet","$dept.name"))
                         .append("userIdSet",new Document("$addToSet","$userId")
                 ))
-        ));
+                ));
 
         for (Document document:iterable){
             Double deptId = document.getDouble("_id");
@@ -75,7 +99,7 @@ public class MongodbClient {
 
     private void findDocumentJson() {
 
-        FindIterable<Document> count =  db.getCollection("testresult").find(
+        FindIterable<Document> count =  db.getCollection("testResult").find(
                 new Document("result.resultId",0)
             );
         for (Document document : count) {
@@ -87,14 +111,14 @@ public class MongodbClient {
 
     private void insertData() {
     //TODO 年龄段最好直接存age,否则要先转成date存入mongodb,要不具体string date不行
-        db.getCollection("testresult").insertOne(
+        db.getCollection("testResult").insertOne(
                 new Document()
                         .append("userId",2)
                         .append("name","王奕然2")
                         .append("birthday","2011-06-13")
 
                         .append("dept",new Document()
-                        .append("id",14)
+                        .append("id",13)
                         .append("name","1团")
                         )
                 .append("result",Document.parse("{\n" +
