@@ -1,14 +1,18 @@
 package com.company;
 
+import com.ee.dynamicmongoquery.MongoQuery;
+import com.ee.dynamicmongoquery.MongoQueryParser;
+import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
-import com.mongodb.DBCollection;
-import com.mongodb.DBCursor;
+import com.mongodb.DB;
 import com.mongodb.MongoClient;
-import com.mongodb.client.FindIterable;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.MongoIterable;
+import com.mongodb.client.*;
 import org.bson.Document;
+
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+
 public class MongodbClient {
     public MongodbClient() {
         this.mongoClient = new MongoClient("localhost", 27017);
@@ -29,14 +33,30 @@ public class MongodbClient {
     MongoClient mongoClient;
     MongoDatabase db;
     MongoCollection resultCollection;
+    DB mongo;
 
 
     public static void main(String[] args) {
         MongodbClient mongoClient = new MongodbClient();
-//        mongoClient.insertData();
+        mongoClient.insertData();
 //       mongoClient.findDocumentJson();
-        mongoClient.findCount();
-        mongoClient.mapreduce();
+//        mongoClient.findCount();
+        mongoClient.computeDeptCountPercent();
+//        mongoClient.mapreduce();
+    }
+
+    private void computeDeptCountPercent() {
+        //不同部门人数
+        AggregateIterable<Document> iterable = resultCollection.aggregate(Arrays.asList(
+                new Document("$group", new Document("_id", "$dept.id").append("userIdSet",new Document("$addToSet","$userId"))
+                )
+        ));
+
+        for (Document document:iterable){
+            Double deptId = document.getDouble("_id");
+            List<Long> userIds = document.get("userIdSet",List.class);
+            System.out.println(userIds);
+        }
     }
 
     private void mapreduce() {
@@ -65,11 +85,13 @@ public class MongodbClient {
 
 
     private void insertData() {
+    //TODO 年龄段最好直接存age,否则要先转成date存入mongodb,要不具体string date不行
         db.getCollection("testresult").insertOne(
                 new Document()
                         .append("userId",2)
                         .append("name","王奕然2")
                         .append("birthday","2011-06-13")
+
                         .append("dept",new Document()
                         .append("id",14)
                         .append("name","1团")
