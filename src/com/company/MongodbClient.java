@@ -1,16 +1,10 @@
 package com.company;
 
-import com.ee.dynamicmongoquery.MongoQuery;
-import com.ee.dynamicmongoquery.MongoQueryParser;
-import com.mongodb.BasicDBList;
-import com.mongodb.BasicDBObject;
-import com.mongodb.DB;
-import com.mongodb.MongoClient;
+import com.mongodb.*;
 import com.mongodb.client.*;
 import org.bson.Document;
 
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 
 public class MongodbClient {
@@ -40,12 +34,12 @@ public class MongodbClient {
         MongodbClient mongoClient = new MongodbClient();
         mongoClient.insertData();
 //       mongoClient.findDocumentJson();
-//        mongoClient.findCount();
-        mongoClient.computeDeptCountPercent();
+       Long totalCount =  mongoClient.findCount();
+        mongoClient.computeDeptCountPercent(totalCount);
 //        mongoClient.mapreduce();
     }
 
-    private void computeDeptCountPercent() {
+    private void computeDeptCountPercent(Long totalCount) {
         //不同部门人数
         AggregateIterable<Document> iterable = resultCollection.aggregate(Arrays.asList(
                 new Document("$group", new Document("_id", "$dept.id").append("userIdSet",new Document("$addToSet","$userId"))
@@ -55,8 +49,10 @@ public class MongodbClient {
         for (Document document:iterable){
             Double deptId = document.getDouble("_id");
             List<Long> userIds = document.get("userIdSet",List.class);
-            System.out.println(userIds);
+            Double percent = Double.valueOf(userIds.size())/totalCount;
+            System.out.println("deptId:"+deptId+",percent:"+percent);
         }
+
     }
 
     private void mapreduce() {
@@ -64,12 +60,12 @@ public class MongodbClient {
 
     }
 
-    private void findCount() {
+    private Long findCount() {
 
         BasicDBObject query = new BasicDBObject();
         query.append("result.resultId",1);
         Long count = resultCollection.count(new Document("result.resultId",1));
-        System.out.println(count);
+        return count;
     }
 
     private void findDocumentJson() {
