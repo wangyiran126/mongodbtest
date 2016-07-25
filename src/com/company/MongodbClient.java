@@ -3,6 +3,8 @@ package com.company;
 import com.mongodb.*;
 import com.mongodb.client.*;
 import org.bson.Document;
+import org.jongo.Aggregate;
+import org.jongo.Jongo;
 
 import java.util.Arrays;
 import java.util.List;
@@ -32,14 +34,29 @@ public class MongodbClient {
 
     public static void main(String[] args) {
         MongodbClient mongoClient = new MongodbClient();
-        mongoClient.insertData();
+//        mongoClient.insertData();
 //       mongoClient.findDocumentJson();
-       Long totalCount =  mongoClient.findCount();
+//       Long totalCount =  mongoClient.findCount();
 //        mongoClient.computeDeptCountPercent(totalCount);
-        mongoClient.computeDeptCountPercent2(totalCount);
-
+//        mongoClient.computeDeptCountPercent2(totalCount);
+        mongoClient.aggregateJongo();
         //获取每个级别的人数
 //        mongoClient.mapreduce();
+    }
+
+    private void aggregateJongo() {
+        DB db = mongoClient.getDB("testResult");
+        Jongo jongo = new Jongo(db);
+        org.jongo.MongoCollection resultCollection = jongo.getCollection("testResult");
+        Aggregate.ResultsIterator<DeptMap> deptMaps = resultCollection.aggregate("{$group:{_id:{deptId:\"$dept.id\",name:\"$dept.name\"},userIds:{$addToSet:\"$userId\"}}}")
+                .and("{$project:{deptId:\"$_id.deptId\",deptName:\"$_id.name\",userCount:{$size:\"$userIds\"}}}")
+                .as(DeptMap.class);
+
+        for (DeptMap deptMap:deptMaps){
+            System.out.println(deptMap);
+        }
+
+
     }
 
     private void computeDeptCountPercent2(Long totalCount) {
